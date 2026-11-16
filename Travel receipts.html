@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Travel receipts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f1f5f4;--surface:#fff;--ink:#10201d;--muted:#58696a;--line:#d6dfdd;--me:#0b6e5f;--me-soft:#dcf0ec;--boss:#5a3fb4;--boss-soft:#e8e3f8;--danger:#b3261e;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1514;--surface:#162120;--ink:#e6efed;--muted:#94a6a3;--line:#283634;--me:#4fcab1;--me-soft:#16332e;--boss:#ab98f0;--boss-soft:#272042;--danger:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1514;--surface:#162120;--ink:#e6efed;--muted:#94a6a3;--line:#283634;--me:#4fcab1;--me-soft:#16332e;--boss:#ab98f0;--boss-soft:#272042;--danger:#ff8a80;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+h1,h2,h3{font-family:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;margin:0;letter-spacing:-.01em}
+h1{font-size:28px;line-height:1.15}
+h2{font-size:18px;margin-bottom:12px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.sync{font-size:13px;color:var(--muted)}
+.week{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.week .label{flex:1;text-align:center;font-weight:600}
+button,input,select{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;cursor:pointer;min-height:40px}
+.btn:hover{border-color:var(--muted)}
+.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600;width:100%;margin-top:14px;min-height:46px}
+:focus-visible{outline:2px solid var(--me);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.tots{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.tot{border-radius:14px;padding:14px 16px}
+.tot.me{background:var(--me-soft);color:var(--me)}
+.tot.boss{background:var(--boss-soft);color:var(--boss)}
+.tot h3{font-size:15px}
+.tot .big{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:28px;font-weight:700;line-height:1.2;margin:4px 0;font-variant-numeric:tabular-nums}
+.tot .sub{font-size:13px;color:var(--ink);opacity:.8;font-variant-numeric:tabular-nums}
+.claim{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.claim b{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:22px;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:14px;font-weight:500;margin-bottom:4px}
+input[type=text],input[type=date],select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-height:44px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:44px}
+.seg label{flex:1;margin:0;font-weight:500;position:relative}
+.seg input{position:absolute;opacity:0;inset:0}
+.seg span{display:flex;align-items:center;justify-content:center;height:100%;min-height:42px;padding:0 10px;cursor:pointer}
+.seg input:checked+span{background:var(--ink);color:var(--bg)}
+.seg input:checked+span.m{background:var(--me);color:var(--bg)}
+.seg input:checked+span.b{background:var(--boss);color:var(--bg)}
+.seg input:focus-visible+span{outline:2px solid var(--me);outline-offset:-2px}
+.full{grid-column:1/-1}
+.err{color:var(--danger);font-size:14px;min-height:20px;margin-top:8px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600}
+tfoot td{font-weight:600;border-bottom:0}
+.day{font-weight:600;font-size:14px;color:var(--muted);margin:16px 0 6px}
+.row{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row .what{flex:1;min-width:0}
+.row .note{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.tag{display:inline-block;font-size:12px;font-weight:600;border-radius:99px;padding:1px 9px;margin-left:6px}
+.tag.me{background:var(--me-soft);color:var(--me)}
+.tag.boss{background:var(--boss-soft);color:var(--boss)}
+.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.amt small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.del{border:0;background:none;color:var(--muted);cursor:pointer;padding:8px;min-height:40px;font-size:13px}
+.del.sure{color:var(--danger);font-weight:600}
+.empty{color:var(--muted);padding:8px 0}
+.rate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.rate input{width:110px;min-height:40px}
+@media (max-width:480px){.tot .big{font-size:23px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <h1>Travel receipts</h1>
+    <span class="sync" id="sync">Saved on this device</span>
+  </div>
+
+  <div class="week">
+    <button class="btn" id="prev" aria-label="Previous week">&lsaquo; Prev</button>
+    <div class="label" id="weekLabel"></div>
+    <button class="btn" id="next" aria-label="Next week">Next &rsaquo;</button>
+  </div>
+
+  <section id="totals" aria-live="polite"></section>
+
+  <form class="card" id="form" autocomplete="off">
+    <h2>Add a receipt</h2>
+    <div class="grid">
+      <div><label for="date">Date</label><input type="date" id="date" required></div>
+      <div><label for="cat">Category</label>
+        <select id="cat">
+          <option>Grab</option>
+          <optgroup label="Food"><option>Breakfast</option><option>Lunch</option><option>Dinner</option></optgroup>
+          <option>Coffee with customer</option>
+        </select></div>
+      <div><label for="amt">Amount</label><input type="text" id="amt" inputmode="decimal" placeholder="0.00" required></div>
+      <div><label>Currency</label>
+        <div class="seg" role="radiogroup" aria-label="Currency">
+          <label><input type="radio" name="cur" value="USD" checked><span>USD $</span></label>
+          <label><input type="radio" name="cur" value="KHR"><span>Riel &#6107;</span></label>
+        </div></div>
+      <div class="full"><label>Paid by</label>
+        <div class="seg" role="radiogroup" aria-label="Paid by">
+          <label><input type="radio" name="who" value="me" checked><span class="m">Me</span></label>
+          <label><input type="radio" name="who" value="boss"><span class="b">My boss</span></label>
+        </div></div>
+      <div class="full"><label for="note">Note (optional)</label><input type="text" id="note" placeholder="Customer name, place, trip"></div>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+    <button class="btn primary" type="submit">Save receipt</button>
+  </form>
+
+  <section class="card">
+    <h2>Receipts this week</h2>
+    <div id="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>By category</h2>
+    <div class="scroll" id="cats"></div>
+  </section>
+
+  <div class="rate">
+    <label for="rate" style="margin:0">Exchange rate: 1 USD =</label>
+    <input type="text" id="rate" inputmode="numeric" aria-label="Riel per US dollar"> <span>&#6107; &middot; used only to show combined totals</span>
+  </div>
+</main>
+
+<script>
+const CATS=["Grab","Breakfast","Lunch","Dinner","Coffee with customer"];
+const LS="travel-receipts-v1";
+let S={rate:4100,items:[]},ref=null,weekStart=null;
+try{const r=localStorage.getItem(LS);if(r){const d=JSON.parse(r);S={rate:d.rate||4100,items:Array.isArray(d.items)?d.items:[]};}}catch(e){}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const mondayOf=s=>{const d=parse(s);d.setDate(d.getDate()-((d.getDay()+6)%7));return ymd(d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return ymd(d)};
+const fmtD=(s,o)=>parse(s).toLocaleDateString("en-GB",o);
+const usd=n=>"$"+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const khr=n=>"\u17DB"+Math.round(n).toLocaleString("en-US");
+const money=(a,c)=>c==="USD"?usd(a):khr(a);
+const setSync=t=>{$("sync").textContent=t};
+
+function save(){
+  try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+  if(ref){ref.set({rate:S.rate,items:S.items}).then(()=>setSync("Saved and backed up")).catch(()=>setSync("Saved on this device only"))}
+}
+
+function sums(items,who){
+  let u=0,k=0;
+  items.filter(i=>i.who===who).forEach(i=>{if(i.cur==="USD")u+=i.amt;else k+=i.amt});
+  return {u,k,eqU:u+k/S.rate,eqK:k+u*S.rate};
+}
+function eqUSD(i){return i.cur==="USD"?i.amt:i.amt/S.rate}
+
+function render(){
+  const end=addDays(weekStart,6);
+  $("weekLabel").textContent=fmtD(weekStart,{day:"numeric",month:"short"})+" \u2013 "+fmtD(end,{day:"numeric",month:"short",year:"numeric"});
+  const items=S.items.filter(i=>i.date>=weekStart&&i.date<=end);
+  const me=sums(items,"me"),boss=sums(items,"boss");
+  const card=(cls,name,t)=>`<div class="tot ${cls}"><h3>${name}</h3><div class="big">${usd(t.eqU)}</div><div class="sub">${khr(t.eqK)} in Riel</div><div class="sub">Paid in USD: ${usd(t.u)}</div><div class="sub">Paid in Riel: ${khr(t.k)}</div></div>`;
+  $("totals").innerHTML=`<div class="tots">${card("me","Paid by me (to claim)",me)}${card("boss","Paid by my boss (not claimed)",boss)}</div>
+   <div class="card claim"><span>You claim this week</span><b>${usd(me.eqU)} &middot; ${khr(me.eqK)}</b></div>`;
+
+  const days=[...new Set(items.map(i=>i.date))].sort().reverse();
+  $("list").innerHTML=days.length?days.map(d=>`<div class="day">${fmtD(d,{weekday:"long",day:"numeric",month:"short"})}</div>`+
+    items.filter(i=>i.date===d).map(i=>`<div class="row"><div class="what"><b>${esc(i.cat)}</b><span class="tag ${i.who}">${i.who==="me"?"Me":"Boss"}</span>${i.note?`<div class="note">${esc(i.note)}</div>`:""}</div>
+    <div class="amt">${money(i.amt,i.cur)}<small>${i.cur==="USD"?khr(i.amt*S.rate):usd(i.amt/S.rate)}</small></div>
+    <button class="del" data-id="${i.id}" aria-label="Remove receipt">Remove</button></div>`).join("")).join(""):
+    `<p class="empty">No receipts this week. Add the first one above.</p>`;
+
+  const rows=CATS.map(c=>{
+    const a=items.filter(i=>i.cat===c&&i.who==="me").reduce((s,i)=>s+eqUSD(i),0);
+    const b=items.filter(i=>i.cat===c&&i.who==="boss").reduce((s,i)=>s+eqUSD(i),0);
+    return `<tr><td>${c}</td><td>${usd(a)}</td><td>${usd(b)}</td></tr>`}).join("");
+  $("cats").innerHTML=`<table><thead><tr><th></th><th>Me</th><th>Boss</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total</td><td>${usd(me.eqU)}</td><td>${usd(boss.eqU)}</td></tr></tfoot></table>`;
+}
+
+$("list").addEventListener("click",e=>{
+  const b=e.target.closest(".del");if(!b)return;
+  if(!b.classList.contains("sure")){b.classList.add("sure");b.textContent="Tap to confirm";setTimeout(()=>{b.classList.remove("sure");b.textContent="Remove"},3000);return}
+  S.items=S.items.filter(i=>i.id!==b.dataset.id);save();render();
+});
+$("prev").onclick=()=>{weekStart=addDays(weekStart,-7);render()};
+$("next").onclick=()=>{weekStart=addDays(weekStart,7);render()};
+$("rate").value=S.rate;
+$("rate").onchange=()=>{const v=parseFloat($("rate").value.replace(/,/g,""));if(v>0){S.rate=v;save();render()}else $("rate").value=S.rate};
+$("form").addEventListener("submit",e=>{
+  e.preventDefault();
+  const amt=parseFloat($("amt").value.replace(/,/g,""));
+  const cur=document.querySelector('input[name=cur]:checked').value;
+  if(!(amt>0)){$("err").textContent="Enter an amount greater than zero.";return}
+  if(!$("date").value){$("err").textContent="Choose the date of the receipt.";return}
+  $("err").textContent="";
+  S.items.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date:$("date").value,cat:$("cat").value,amt:cur==="KHR"?Math.round(amt):Math.round(amt*100)/100,cur,who:document.querySelector('input[name=who]:checked').value,note:$("note").value.trim()});
+  weekStart=mondayOf($("date").value);
+  $("amt").value="";$("note").value="";
+  save();render();$("amt").focus();
+});
+
+const today=ymd(new Date());
+$("date").value=today;weekStart=mondayOf(today);render();
+
+(async()=>{
+  try{
+    if(!window.claude)return;
+    const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
+    if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    ref=db.doc("data/users/"+id+"/state");
+    const t=setTimeout(()=>setSync("Saved on this device only"),10000);
+    ref.onSnapshot(snap=>{
+      if(snap.metadata&&snap.metadata.hasPendingWrites)return;
+      if(snap.exists){
+        const d=snap.data();
+        S={rate:d.rate||4100,items:Array.isArray(d.items)?d.items:[]};
+        try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+        $("rate").value=S.rate;render();
+        if(!snap.metadata||!snap.metadata.fromCache){clearTimeout(t);setSync("Saved and backed up")}
+      }else if(S.items.length){save();clearTimeout(t)}
+      else{clearTimeout(t);setSync("Saved and backed up")}
+    },()=>setSync("Saved on this device only"));
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
