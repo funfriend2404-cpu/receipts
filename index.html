@@ -37,7 +37,7 @@ button,input,select{font:inherit;color:inherit}
 .claim b{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:22px;font-variant-numeric:tabular-nums}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 label{display:block;font-size:14px;font-weight:500;margin-bottom:4px}
-input[type=text],input[type=date],select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-height:44px}
+input[type=text],input[type=date],input[type=password],select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-height:44px}
 .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:44px}
 .seg label{flex:1;margin:0;font-weight:500;position:relative}
 .seg input{position:absolute;opacity:0;inset:0}
@@ -75,8 +75,18 @@ tfoot td{font-weight:600;border-bottom:0}
 <main>
   <div class="top">
     <h1>Travel receipts</h1>
-    <span class="sync" id="sync">Saved on this device</span>
+    <span><span class="sync" id="sync">Saved on this device only</span> <button class="del" id="out" type="button" hidden>Sign out</button></span>
   </div>
+
+  <form class="card" id="login" hidden>
+    <h2>Sign in to sync across devices</h2>
+    <div class="grid">
+      <div><label for="email">Email</label><input type="text" id="email" inputmode="email" autocomplete="username"></div>
+      <div><label for="pw">Password</label><input type="password" id="pw" autocomplete="current-password"></div>
+    </div>
+    <div class="err" id="lerr" role="alert"></div>
+    <button class="btn primary" type="submit">Sign in</button>
+  </form>
 
   <div class="week">
     <button class="btn" id="prev" aria-label="Previous week">&lsaquo; Prev</button>
@@ -129,11 +139,12 @@ tfoot td{font-weight:600;border-bottom:0}
   </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const CATS=["Grab","Breakfast","Lunch","Dinner","Coffee with customer"];
 const LS="travel-receipts-v1";
-let S={rate:4100,items:[]},ref=null,weekStart=null;
-try{const r=localStorage.getItem(LS);if(r){const d=JSON.parse(r);S={rate:d.rate||4100,items:Array.isArray(d.items)?d.items:[]};}}catch(e){}
+let S={rate:4100,items:[],del:[]},weekStart=null;
+try{const r=localStorage.getItem(LS);if(r){const d=JSON.parse(r);S={rate:d.rate||4100,items:Array.isArray(d.items)?d.items:[],del:d.del||[]};}}catch(e){}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad=n=>String(n).padStart(2,"0");
@@ -149,7 +160,18 @@ const setSync=t=>{$("sync").textContent=t};
 
 function save(){
   try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
-  if(ref){ref.set({rate:S.rate,items:S.items}).then(()=>setSync("Saved and backed up")).catch(()=>setSync("Saved on this device only"))}
+  push();
+}
+let sb=null,uid=null;
+function push(){
+  if(!sb||!uid)return;
+  sb.from("receipts_state").upsert({user_id:uid,data:S,updated_at:new Date().toISOString()}).then(r=>setSync(r.error?"Not synced. Check your connection":"Synced"));
+}
+function merge(r){
+  const del=[...new Set([...(S.del||[]),...(r.del||[])])];
+  const m=new Map();
+  [...(r.items||[]),...S.items].forEach(i=>{if(!del.includes(i.id))m.set(i.id,i)});
+  S={rate:r.rate||S.rate,items:[...m.values()],del};
 }
 
 function sums(items,who){
@@ -185,7 +207,7 @@ function render(){
 $("list").addEventListener("click",e=>{
   const b=e.target.closest(".del");if(!b)return;
   if(!b.classList.contains("sure")){b.classList.add("sure");b.textContent="Tap to confirm";setTimeout(()=>{b.classList.remove("sure");b.textContent="Remove"},3000);return}
-  S.items=S.items.filter(i=>i.id!==b.dataset.id);save();render();
+  S.items=S.items.filter(i=>i.id!==b.dataset.id);S.del.push(b.dataset.id);save();render();
 });
 $("prev").onclick=()=>{weekStart=addDays(weekStart,-7);render()};
 $("next").onclick=()=>{weekStart=addDays(weekStart,7);render()};
@@ -207,27 +229,28 @@ $("form").addEventListener("submit",e=>{
 const today=ymd(new Date());
 $("date").value=today;weekStart=mondayOf(today);render();
 
-(async()=>{
-  try{
-    if(!window.claude)return;
-    const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
-    if(!db||!user)return;
-    const id=await user.id();if(!id)return;
-    ref=db.doc("data/users/"+id+"/state");
-    const t=setTimeout(()=>setSync("Saved on this device only"),10000);
-    ref.onSnapshot(snap=>{
-      if(snap.metadata&&snap.metadata.hasPendingWrites)return;
-      if(snap.exists){
-        const d=snap.data();
-        S={rate:d.rate||4100,items:Array.isArray(d.items)?d.items:[]};
-        try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
-        $("rate").value=S.rate;render();
-        if(!snap.metadata||!snap.metadata.fromCache){clearTimeout(t);setSync("Saved and backed up")}
-      }else if(S.items.length){save();clearTimeout(t)}
-      else{clearTimeout(t);setSync("Saved and backed up")}
-    },()=>setSync("Saved on this device only"));
-  }catch(e){}
+const SUPABASE_URL="https://qgfsreyreztowotwclfh.supabase.co",SUPABASE_KEY="sb_publishable_jDQ3pd3Oi9_J0BAC0Eq39A_etO4BQNJ";
+async function pull(){
+  const r=await sb.from("receipts_state").select("data").eq("user_id",uid).maybeSingle();
+  if(r.error){setSync("Not synced. Check your connection");return}
+  if(r.data&&r.data.data)merge(r.data.data);
+  $("rate").value=S.rate;render();save();
+}
+(function(){
+  if(!window.supabase||SUPABASE_URL.startsWith("PASTE"))return;
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  sb.auth.onAuthStateChange((ev,sess)=>{
+    uid=sess&&sess.user?sess.user.id:null;
+    $("login").hidden=!!uid;$("out").hidden=!uid;
+    if(uid){setSync("Syncing\u2026");setTimeout(pull,0)}else setSync("Saved on this device only");
+  });
 })();
+$("login").addEventListener("submit",async e=>{
+  e.preventDefault();$("lerr").textContent="";
+  const r=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("pw").value});
+  if(r.error)$("lerr").textContent="Sign in failed. Check your email and password.";
+});
+$("out").onclick=()=>sb.auth.signOut();
 </script>
 </body>
 </html>
